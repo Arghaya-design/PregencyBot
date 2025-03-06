@@ -4,4 +4,4 @@ speechrecognition
 pyttsx3
 gtts
 datetime
-espeak-ng
+
