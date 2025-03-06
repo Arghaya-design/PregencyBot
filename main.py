@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import datetime
 import speech_recognition as sr
-import pyttsx3
 import threading
 from functools import lru_cache
 
@@ -36,18 +35,13 @@ with st.sidebar:
 API_KEY = "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"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Initialize TTS Engine
-tts_engine = pyttsx3.init()
-
 # Store chat history and mood log
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "mood_log" not in st.session_state:
     st.session_state.mood_log = []
 
-def speak(text):
-    threading.Thread(target=lambda: [tts_engine.say(text), tts_engine.runAndWait()]).start()
-
+# Function to recognize speech
 def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
@@ -58,6 +52,7 @@ def recognize_speech():
         except Exception:
             return "Speech not recognized. Try again."
 
+# Function to chat with AI
 def chat_with_ai(prompt):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     data = {
