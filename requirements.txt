@@ -1,5 +1,6 @@
-streamlit==1.17.0
-requests==2.28.1
-pyttsx3==2.90  # pyttsx3 2.90 is the most stable for Python 3.12, although it might still require `espeak`
-SpeechRecognition==3.8.1
-gTTS==2.3.1  # This is a cloud-based alternative to pyttsx3 and works well in the latest Python
+streamlit
+requests
+pyttsx3  
+SpeechRecognition
+gTTS
+altair
