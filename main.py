@@ -24,14 +24,14 @@ with st.sidebar:
     except Exception:
         st.warning("Logo not found. Please check the file path.")
         st.markdown("# **Pregnancy AI**")
-    
+
     st.title("Pregnancy Tracker")
     due_date = st.date_input("Select Your Due Date")
     if due_date:
-        st.write(f"**Week {get_pregnancy_week(due_date)}** of pregnancy! ✅")
+        st.write(f"**Week {get_pregnancy_week(due_date)}** of pregnancy!")
 
-# API Configuration (Replace with a valid key)
-API_KEY = "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"
+# API Configuration (Replace with a valid API key)
+API_KEY = "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"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Store chat history and mood log
@@ -40,54 +40,42 @@ if "chat_history" not in st.session_state:
 if "mood_log" not in st.session_state:
     st.session_state.mood_log = []
 
-# Speech Recognition Function
 def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
-        st.info("🎤 Listening... Speak now!")
+        st.info("Listening... Speak now!")
         try:
             audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
             return recognizer.recognize_google(audio)
         except Exception:
             return "Speech not recognized. Try again."
 
-# Function to Chat with AI
 def chat_with_ai(prompt):
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
+    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     data = {
-        "model": "mistral/mistral-7b-instruct",  # More reliable model
+        "model": "deepseek/deepseek-r1:free",
         "messages": [
-            {"role": "system", "content": "You are a pregnancy assistant AI."},
+            {"role": "system", "content": "Pregnancy assistant AI"},
             {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.7
+        ]
     }
-
     try:
-        response = requests.post(API_URL, json=data, headers=headers, timeout=10)
-        response_json = response.json()
-
-        # Debugging (uncomment to see API response)
-        # st.write(response_json)  
-
-        if "choices" in response_json and response_json["choices"]:
-            return response_json["choices"][0]["message"]["content"]
+        response = requests.post(API_URL, json=data, headers=headers, timeout=5)
+        if response.status_code == 200:
+            ai_response = response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response.")
+            return ai_response
         else:
-            return "⚠️ Error: Unexpected API response. Check API format."
-    
+            return f"Error: {response.status_code}. Check API key and request format."
     except requests.exceptions.RequestException as e:
-        return f"⚠️ API Error: {str(e)}"
+        return f"API request failed: {e}"
 
 # Main Sections
 tab1, tab2, tab3 = st.tabs(["💬 Chat with AI", "📋 Personalized Advice", "🧘 Mood Tracker"])
 
 # Chat with AI
 with tab1:
-    st.write("### 💬 Chat with AI")
-    
+    st.write("### Chat with AI")
+
     predefined_questions = {
         "Nutrition": [
             "What are the best foods during pregnancy?",
@@ -105,35 +93,35 @@ with tab1:
             "What should I avoid during pregnancy?"
         ]
     }
-    
+
     category = st.selectbox("Choose a category", list(predefined_questions.keys()))
     question = st.selectbox("Choose a question", predefined_questions[category])
-    
+
     col1, col2 = st.columns([1, 2])
     with col1:
-        if st.button("Ask AI", use_container_width=True):
+        if st.button("Ask AI"):
             ai_response = chat_with_ai(question)
             st.session_state.chat_history.append(f"👩‍🦰 You: {question}")
             st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
             st.write(f"🤖 **AI Response:** {ai_response}")
-    
+
     user_input = st.text_input("Or type your question", key="user_input")
     with col2:
-        if st.button("Send", use_container_width=True):
+        if st.button("Send"):
             if user_input:
                 ai_response = chat_with_ai(user_input)
                 st.session_state.chat_history.append(f"👩‍🦰 You: {user_input}")
                 st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
                 st.write(f"🤖 **AI Response:** {ai_response}")
-    
+
     with st.expander("📜 Chat History"):
         for msg in st.session_state.chat_history[::-1]:
             st.write(msg)
 
 # Personalized Advice
 with tab2:
-    st.write("### 📋 Personalized Advice")
-    
+    st.write("### Personalized Advice")
+
     col1, col2 = st.columns(2)
     with col1:
         age = st.slider("Your Age", 18, 45, 25)
@@ -142,9 +130,9 @@ with tab2:
         height = st.number_input("Your Height (cm)", 140, 200, 165)
         exercise = st.selectbox("Do you exercise regularly?", ["Yes", "No"])
     diet = st.selectbox("Are you following a pregnancy diet?", ["Yes", "No"])
-    
+
     question = st.text_input("Ask a question about your pregnancy")
-    if st.button("Get Advice", use_container_width=True):
+    if st.button("Get Advice"):
         advice = f"At age {age}, maintaining a healthy weight of {weight}kg is crucial. "
         if exercise == "No":
             advice += "Regular prenatal exercises can help with delivery and reduce stress. "
@@ -156,14 +144,14 @@ with tab2:
 
 # Mood Tracker
 with tab3:
-    st.write("### 🧘 Mood Tracker")
+    st.write("### Mood Tracker")
     mood = st.selectbox("How are you feeling today?", ["😊 Happy", "😢 Sad", "😴 Tired", "😡 Stressed", "🤗 Excited"])
     if st.button("Log Mood"):
         st.session_state.mood_log.append(f"{datetime.date.today()}: {mood}")
-        st.success("Mood logged successfully! ✅")
-    
+        st.success("Mood logged successfully!")
+
     with st.expander("📜 Mood History"):
         for entry in st.session_state.mood_log[::-1]:
             st.write(entry)
 
-st.write("👶 Stay healthy and enjoy your pregnancy journey! 💖")  
+st.write("👶 Stay healthy and enjoy your pregnancy journey! 💖")
