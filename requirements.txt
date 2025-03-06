@@ -3,3 +3,4 @@ requests
 speechrecognition
 pyttsx3
 pydub
+eSpeak
