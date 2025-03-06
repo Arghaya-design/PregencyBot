@@ -1,6 +1,18 @@
-streamlit
-requests
-pyttsx3  
-SpeechRecognition
-gTTS
-altair
+# Streamlit: Interactive web app library
+streamlit==1.17.0
+
+# Requests: To make API calls to OpenAI or other services
+requests==2.28.1
+
+# pyttsx3: Text-to-speech (TTS) engine for local speech synthesis
+# If you choose to use pyttsx3, install eSpeak as a system dependency.
+pyttsx3==2.90
+
+# SpeechRecognition: For voice-to-text functionality
+SpeechRecognition==3.8.1
+
+# gTTS: Google Text-to-Speech (alternative to pyttsx3 if you face issues with local dependencies)
+gTTS==2.3.1
+
+# Altair: Data visualization library used by Streamlit for charts
+altair==4.2.0
