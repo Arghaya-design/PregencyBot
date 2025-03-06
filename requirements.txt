@@ -1,7 +1,5 @@
-streamlit
-requests
-speechrecognition
-pyttsx3
-gtts
-datetime
-
+streamlit==1.21.0
+requests==2.28.2
+pyttsx3==2.90
+SpeechRecognition==3.9.0
+gTTS==2.3.1
