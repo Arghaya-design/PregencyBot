@@ -31,7 +31,7 @@ with st.sidebar:
         st.write(f"**Week {get_pregnancy_week(due_date)}** of pregnancy!")
 
 # API Configuration (Replace with a valid API key)
-API_KEY = "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"
+API_KEY = "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"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Store chat history and mood log
