@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import datetime
 import speech_recognition as sr
-import threading
 from functools import lru_cache
 
 # Page Configuration
@@ -22,17 +21,17 @@ with st.sidebar:
         <h1 style='text-align: center;'>Pregnancy AI</h1>
         <h4 style='text-align: center; color: grey;'>Your Intelligent Pregnancy Companion</h4>
         """, unsafe_allow_html=True)
-    except Exception as e:
+    except Exception:
         st.warning("Logo not found. Please check the file path.")
         st.markdown("# **Pregnancy AI**")
-    
+
     st.title("Pregnancy Tracker")
     due_date = st.date_input("Select Your Due Date")
     if due_date:
-        st.write(f"**Week {get_pregnancy_week(due_date)}** of pregnancy!")
+        st.write(f"**Week {get_pregnancy_week(due_date)}** of pregnancy! 🎉")
 
-# API Configuration (Replace with valid key)
-API_KEY = "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"
+# API Configuration (Replace with a valid API key)
+API_KEY = "your_actual_api_key_here"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Store chat history and mood log
@@ -41,18 +40,7 @@ if "chat_history" not in st.session_state:
 if "mood_log" not in st.session_state:
     st.session_state.mood_log = []
 
-# Function to recognize speech
-def recognize_speech():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("Listening... Speak now!")
-        try:
-            audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
-            return recognizer.recognize_google(audio)
-        except Exception:
-            return "Speech not recognized. Try again."
-
-# Function to chat with AI
+# Function to interact with AI
 def chat_with_ai(prompt):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     data = {
@@ -62,9 +50,17 @@ def chat_with_ai(prompt):
             {"role": "user", "content": prompt}
         ]
     }
-    response = requests.post(API_URL, json=data, headers=headers, timeout=5)
-    ai_response = response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response.")
-    return ai_response
+    try:
+        response = requests.post(API_URL, json=data, headers=headers, timeout=5)
+        response_json = response.json()
+        
+        if "choices" in response_json:
+            return response_json["choices"][0].get("message", {}).get("content", "No response from AI.")
+        else:
+            return "Error: Invalid API response. Please check your API key and request format."
+    
+    except requests.exceptions.RequestException as e:
+        return f"API Error: {str(e)}"
 
 # Main Sections
 tab1, tab2, tab3 = st.tabs(["💬 Chat with AI", "📋 Personalized Advice", "🧘 Mood Tracker"])
@@ -96,7 +92,7 @@ with tab1:
     
     col1, col2 = st.columns([1, 2])
     with col1:
-        if st.button("Ask AI", use_container_width=True):
+        if st.button("Ask AI"):  # Removed use_container_width=True
             ai_response = chat_with_ai(question)
             st.session_state.chat_history.append(f"👩‍🦰 You: {question}")
             st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
@@ -104,7 +100,7 @@ with tab1:
     
     user_input = st.text_input("Or type your question", key="user_input")
     with col2:
-        if st.button("Send", use_container_width=True):
+        if st.button("Send"):
             if user_input:
                 ai_response = chat_with_ai(user_input)
                 st.session_state.chat_history.append(f"👩‍🦰 You: {user_input}")
@@ -129,7 +125,7 @@ with tab2:
     diet = st.selectbox("Are you following a pregnancy diet?", ["Yes", "No"])
     
     question = st.text_input("Ask a question about your pregnancy")
-    if st.button("Get Advice", use_container_width=True):
+    if st.button("Get Advice"):
         advice = f"At age {age}, maintaining a healthy weight of {weight}kg is crucial. "
         if exercise == "No":
             advice += "Regular prenatal exercises can help with delivery and reduce stress. "
