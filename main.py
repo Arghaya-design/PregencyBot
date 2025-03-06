@@ -33,7 +33,7 @@ with st.sidebar:
         st.write(f"**Week {get_pregnancy_week(due_date)}** of pregnancy!")
 
 # API Configuration (Replace with valid key)
-API_KEY = "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"
+API_KEY = "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"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Initialize TTS Engine
@@ -55,8 +55,12 @@ def recognize_speech():
         try:
             audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
             return recognizer.recognize_google(audio)
-        except Exception:
+        except sr.RequestError:
+            return "API error. Please try again later."
+        except sr.UnknownValueError:
             return "Speech not recognized. Try again."
+        except Exception as e:
+            return f"Error occurred: {e}"
 
 def chat_with_ai(prompt):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
@@ -67,9 +71,13 @@ def chat_with_ai(prompt):
             {"role": "user", "content": prompt}
         ]
     }
-    response = requests.post(API_URL, json=data, headers=headers, timeout=5)
-    ai_response = response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response.")
-    return ai_response
+    try:
+        response = requests.post(API_URL, json=data, headers=headers, timeout=5)
+        response.raise_for_status()  # Raise an error if the API request fails
+        ai_response = response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response.")
+        return ai_response
+    except requests.exceptions.RequestException as e:
+        return f"API error: {e}"
 
 # Main Sections
 tab1, tab2, tab3 = st.tabs(["💬 Chat with AI", "📋 Personalized Advice", "🧘 Mood Tracker"])
