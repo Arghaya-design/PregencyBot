@@ -16,3 +16,4 @@ gTTS==2.3.1
 
 # Altair: Data visualization library used by Streamlit for charts
 altair==4.2.0
+espeak
