@@ -15,15 +15,11 @@ def get_pregnancy_week(due_date):
 
 # Sidebar - Logo and Pregnancy Tracker
 with st.sidebar:
-    try:
-        st.image("logo.png", width=250)
-        st.markdown("""
+    st.image("logo.png", width=250, use_column_width=True)
+    st.markdown("""
         <h1 style='text-align: center;'>Pregnancy AI</h1>
         <h4 style='text-align: center; color: grey;'>Your Intelligent Pregnancy Companion</h4>
-        """, unsafe_allow_html=True)
-    except Exception:
-        st.warning("Logo not found. Please check the file path.")
-        st.markdown("# **Pregnancy AI**")
+    """, unsafe_allow_html=True)
 
     st.title("Pregnancy Tracker")
     due_date = st.date_input("Select Your Due Date")
@@ -40,6 +36,7 @@ if "chat_history" not in st.session_state:
 if "mood_log" not in st.session_state:
     st.session_state.mood_log = []
 
+# Function to recognize speech
 def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
@@ -47,9 +44,12 @@ def recognize_speech():
         try:
             audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
             return recognizer.recognize_google(audio)
-        except Exception:
+        except sr.UnknownValueError:
             return "Speech not recognized. Try again."
+        except sr.RequestError:
+            return "Speech recognition service unavailable."
 
+# Function to interact with AI chatbot
 def chat_with_ai(prompt):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     data = {
@@ -61,21 +61,18 @@ def chat_with_ai(prompt):
     }
     try:
         response = requests.post(API_URL, json=data, headers=headers, timeout=5)
-        if response.status_code == 200:
-            ai_response = response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response.")
-            return ai_response
-        else:
-            return f"Error: {response.status_code}. Check API key and request format."
+        response.raise_for_status()
+        return response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response.")
     except requests.exceptions.RequestException as e:
-        return f"API request failed: {e}"
+        return f"Error: {e}"
 
 # Main Sections
 tab1, tab2, tab3 = st.tabs(["💬 Chat with AI", "📋 Personalized Advice", "🧘 Mood Tracker"])
 
 # Chat with AI
 with tab1:
-    st.write("### Chat with AI")
-
+    st.subheader("Chat with AI")
+    
     predefined_questions = {
         "Nutrition": [
             "What are the best foods during pregnancy?",
@@ -97,30 +94,26 @@ with tab1:
     category = st.selectbox("Choose a category", list(predefined_questions.keys()))
     question = st.selectbox("Choose a question", predefined_questions[category])
 
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        if st.button("Ask AI"):
-            ai_response = chat_with_ai(question)
-            st.session_state.chat_history.append(f"👩‍🦰 You: {question}")
-            st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
-            st.write(f"🤖 **AI Response:** {ai_response}")
-
-    user_input = st.text_input("Or type your question", key="user_input")
-    with col2:
-        if st.button("Send"):
-            if user_input:
-                ai_response = chat_with_ai(user_input)
-                st.session_state.chat_history.append(f"👩‍🦰 You: {user_input}")
-                st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
-                st.write(f"🤖 **AI Response:** {ai_response}")
-
+    if st.button("Ask AI"):
+        ai_response = chat_with_ai(question)
+        st.session_state.chat_history.append(f"👩‍🦰 You: {question}")
+        st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
+        st.success(ai_response)
+    
+    user_input = st.text_input("Or type your question")
+    if st.button("Send") and user_input:
+        ai_response = chat_with_ai(user_input)
+        st.session_state.chat_history.append(f"👩‍🦰 You: {user_input}")
+        st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
+        st.success(ai_response)
+    
     with st.expander("📜 Chat History"):
         for msg in st.session_state.chat_history[::-1]:
             st.write(msg)
 
 # Personalized Advice
 with tab2:
-    st.write("### Personalized Advice")
+    st.subheader("Personalized Advice")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -144,12 +137,12 @@ with tab2:
 
 # Mood Tracker
 with tab3:
-    st.write("### Mood Tracker")
+    st.subheader("Mood Tracker")
     mood = st.selectbox("How are you feeling today?", ["😊 Happy", "😢 Sad", "😴 Tired", "😡 Stressed", "🤗 Excited"])
     if st.button("Log Mood"):
         st.session_state.mood_log.append(f"{datetime.date.today()}: {mood}")
         st.success("Mood logged successfully!")
-
+    
     with st.expander("📜 Mood History"):
         for entry in st.session_state.mood_log[::-1]:
             st.write(entry)
