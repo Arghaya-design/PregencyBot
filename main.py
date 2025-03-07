@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 import datetime
 import speech_recognition as sr
+import pyttsx3
+import threading
 from functools import lru_cache
 
 # Page Configuration
@@ -15,20 +17,27 @@ def get_pregnancy_week(due_date):
 
 # Sidebar - Logo and Pregnancy Tracker
 with st.sidebar:
-    st.image("logo.png", width=250, use_column_width=True)
-    st.markdown("""
+    try:
+        st.image("logo.png", width=250)
+        st.markdown("""
         <h1 style='text-align: center;'>Pregnancy AI</h1>
         <h4 style='text-align: center; color: grey;'>Your Intelligent Pregnancy Companion</h4>
-    """, unsafe_allow_html=True)
-
+        """, unsafe_allow_html=True)
+    except Exception:
+        st.warning("Logo not found. Please check the file path.")
+        st.markdown("# **Pregnancy AI**")
+    
     st.title("Pregnancy Tracker")
     due_date = st.date_input("Select Your Due Date")
     if due_date:
         st.write(f"**Week {get_pregnancy_week(due_date)}** of pregnancy!")
 
-# API Configuration (Replace with a valid API key)
-API_KEY = "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"
+# API Configuration (Replace with valid key)
+API_KEY = "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"
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+# Initialize TTS Engine
+tts_engine = pyttsx3.init()
 
 # Store chat history and mood log
 if "chat_history" not in st.session_state:
@@ -36,7 +45,9 @@ if "chat_history" not in st.session_state:
 if "mood_log" not in st.session_state:
     st.session_state.mood_log = []
 
-# Function to recognize speech
+def speak(text):
+    threading.Thread(target=lambda: [tts_engine.say(text), tts_engine.runAndWait()]).start()
+
 def recognize_speech():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
@@ -44,12 +55,9 @@ def recognize_speech():
         try:
             audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
             return recognizer.recognize_google(audio)
-        except sr.UnknownValueError:
+        except Exception:
             return "Speech not recognized. Try again."
-        except sr.RequestError:
-            return "Speech recognition service unavailable."
 
-# Function to interact with AI chatbot
 def chat_with_ai(prompt):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     data = {
@@ -60,18 +68,23 @@ def chat_with_ai(prompt):
         ]
     }
     try:
-        response = requests.post(API_URL, json=data, headers=headers, timeout=5)
-        response.raise_for_status()
-        return response.json().get("choices", [{}])[0].get("message", {}).get("content", "No response.")
-    except requests.exceptions.RequestException as e:
-        return f"Error: {e}"
+        response = requests.post(API_URL, json=data, headers=headers, timeout=10)
+        response.raise_for_status()  # Raises an error for non-200 responses
+        result = response.json()
+        return result.get("choices", [{}])[0].get("message", {}).get("content", "No response from AI.")
+    except requests.exceptions.HTTPError as http_err:
+        return f"HTTP error: {http_err}"
+    except requests.exceptions.RequestException as req_err:
+        return f"API request failed: {req_err}"
+    except Exception as e:
+        return f"Unexpected error: {e}"
 
 # Main Sections
 tab1, tab2, tab3 = st.tabs(["💬 Chat with AI", "📋 Personalized Advice", "🧘 Mood Tracker"])
 
 # Chat with AI
 with tab1:
-    st.subheader("Chat with AI")
+    st.write("### Chat with AI")
     
     predefined_questions = {
         "Nutrition": [
@@ -90,22 +103,26 @@ with tab1:
             "What should I avoid during pregnancy?"
         ]
     }
-
+    
     category = st.selectbox("Choose a category", list(predefined_questions.keys()))
     question = st.selectbox("Choose a question", predefined_questions[category])
-
-    if st.button("Ask AI"):
-        ai_response = chat_with_ai(question)
-        st.session_state.chat_history.append(f"👩‍🦰 You: {question}")
-        st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
-        st.success(ai_response)
     
-    user_input = st.text_input("Or type your question")
-    if st.button("Send") and user_input:
-        ai_response = chat_with_ai(user_input)
-        st.session_state.chat_history.append(f"👩‍🦰 You: {user_input}")
-        st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
-        st.success(ai_response)
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        if st.button("Ask AI", use_container_width=True):
+            ai_response = chat_with_ai(question)
+            st.session_state.chat_history.append(f"👩‍🦰 You: {question}")
+            st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
+            st.write(f"🤖 **AI Response:** {ai_response}")
+    
+    user_input = st.text_input("Or type your question", key="user_input")
+    with col2:
+        if st.button("Send", use_container_width=True):
+            if user_input:
+                ai_response = chat_with_ai(user_input)
+                st.session_state.chat_history.append(f"👩‍🦰 You: {user_input}")
+                st.session_state.chat_history.append(f"🤖 AI: {ai_response}")
+                st.write(f"🤖 **AI Response:** {ai_response}")
     
     with st.expander("📜 Chat History"):
         for msg in st.session_state.chat_history[::-1]:
@@ -113,8 +130,8 @@ with tab1:
 
 # Personalized Advice
 with tab2:
-    st.subheader("Personalized Advice")
-
+    st.write("### Personalized Advice")
+    
     col1, col2 = st.columns(2)
     with col1:
         age = st.slider("Your Age", 18, 45, 25)
@@ -123,9 +140,9 @@ with tab2:
         height = st.number_input("Your Height (cm)", 140, 200, 165)
         exercise = st.selectbox("Do you exercise regularly?", ["Yes", "No"])
     diet = st.selectbox("Are you following a pregnancy diet?", ["Yes", "No"])
-
+    
     question = st.text_input("Ask a question about your pregnancy")
-    if st.button("Get Advice"):
+    if st.button("Get Advice", use_container_width=True):
         advice = f"At age {age}, maintaining a healthy weight of {weight}kg is crucial. "
         if exercise == "No":
             advice += "Regular prenatal exercises can help with delivery and reduce stress. "
@@ -137,7 +154,7 @@ with tab2:
 
 # Mood Tracker
 with tab3:
-    st.subheader("Mood Tracker")
+    st.write("### Mood Tracker")
     mood = st.selectbox("How are you feeling today?", ["😊 Happy", "😢 Sad", "😴 Tired", "😡 Stressed", "🤗 Excited"])
     if st.button("Log Mood"):
         st.session_state.mood_log.append(f"{datetime.date.today()}: {mood}")
